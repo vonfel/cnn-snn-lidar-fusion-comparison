@@ -1,4 +1,4 @@
-# ⚡ SNN vs CNN for LiDAR-Event Camera Fusion : Self-Driving Perception
+# SNN vs CNN for LiDAR-Event Camera Fusion : Self-Driving Perception
 
 **Course:** ECE 5424 Advanced Machine Learning | Virginia Tech, Spring 2026  
 **Team:** Enrique Maldonado · Christopher Quispesivana · Victor Velasquez · Michael Volkman  
@@ -6,7 +6,7 @@
 
 ---
 
-## 🚀 Overview
+## Overview
 
 End-to-end comparison of **Spiking Neural Networks (SNNs)** and **Convolutional Neural Networks (CNNs)** for fusing event-camera and LiDAR data in autonomous driving perception.
 
@@ -16,7 +16,7 @@ We build a two-branch fusion architecture with a **Smart Gate** — an attention
 
 ---
 
-## 📊 Target Specifications
+## Target Specifications
 
 | Metric | Target | Status |
 |--------|--------|--------|
@@ -28,7 +28,7 @@ We build a two-branch fusion architecture with a **Smart Gate** — an attention
 
 ---
 
-## 🧠 Engineering Decisions & Key Trade-offs
+## Engineering Decisions & Key Trade-offs
 
 ### 1. v2e Over SENPI for Synthetic Event Generation
 Physical event cameras (DVS/DAVIS) are specialized hardware costing thousands of dollars. We use **v2e** (`sensorsINI/v2e`) to synthesize realistic event streams from standard driving videos. v2e was selected over SENPI due to its larger user base, active maintenance, published validation on real DVS hardware, and a well-documented tutorial notebook. SENPI is newer and less battle-tested for this use case.
@@ -47,7 +47,7 @@ To isolate the effect of neuron type, the CNN baseline is architecturally identi
 
 ---
 
-## 🧩 Architecture
+## Architecture
 
 ```
                     ┌─────────────────────────────────────────┐
@@ -86,7 +86,7 @@ To isolate the effect of neuron type, the CNN baseline is architecturally identi
 
 ---
 
-## 💻 Evaluation Protocol
+## Evaluation Protocol
 
 Three axes, following the nuScenes benchmark standard:
 
@@ -100,7 +100,7 @@ Three axes, following the nuScenes benchmark standard:
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```
 snn-lidar-fusion/
@@ -144,7 +144,7 @@ snn-lidar-fusion/
 
 ---
 
-## ⚙️ Tech Stack
+## Tech Stack
 
 | Category | Tool | Notes |
 |----------|------|-------|
@@ -159,7 +159,7 @@ snn-lidar-fusion/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ```bash
 # Clone the repository
@@ -182,7 +182,7 @@ jupyter notebook notebooks/02_time_surface_viz.ipynb
 
 ---
 
-## 📈 Results
+## Results
 
 *In progress — results will be populated as experiments complete.*
 
@@ -193,7 +193,7 @@ jupyter notebook notebooks/02_time_surface_viz.ipynb
 
 ---
 
-## 📚 References
+## References
 
 1. Y. Hu et al., "v2e: From Video Frames to Realistic DVS Events," *CVPR Workshop*, 2021.
 2. J. Greene et al., "SENPI: A PyTorch-Enabled Tool for Synthetic Event Camera Data," *SPIE*, 2025.
