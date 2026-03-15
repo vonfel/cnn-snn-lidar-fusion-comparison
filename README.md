@@ -20,11 +20,11 @@ We build a two-branch fusion architecture with a **Smart Gate** — an attention
 
 | Metric | Target | Status |
 |--------|--------|--------|
-| Detection accuracy (mAP @ IoU 0.5) | Competitive with CNN baseline | ⏳ In progress |
-| Detection accuracy (mAP @ IoU 0.7) | Within ±2% of CNN baseline | ⏳ In progress |
-| Inference latency (GPU) | Lower than CNN at equivalent mAP | ⏳ In progress |
-| Smart Gate sparsity ratio | >30% LiDAR feature suppression on highway scenes | ⏳ In progress |
-| SNN training convergence | Surrogate gradient loss < CNN baseline loss | ⏳ In progress |
+| Detection accuracy (mAP @ IoU 0.5) | Competitive with CNN baseline | In progress |
+| Detection accuracy (mAP @ IoU 0.7) | Within ±2% of CNN baseline | In progress |
+| Inference latency (GPU) | Lower than CNN at equivalent mAP | In progress |
+| Smart Gate sparsity ratio | >30% LiDAR feature suppression on highway scenes | In progress |
+| SNN training convergence | Surrogate gradient loss < CNN baseline loss | In progress |
 
 ---
 
