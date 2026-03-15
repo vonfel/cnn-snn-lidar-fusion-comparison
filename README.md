@@ -1,8 +1,8 @@
-# ⚡ SNN vs CNN for LiDAR-Event Camera Fusion — Self-Driving Perception
+# ⚡ SNN vs CNN for LiDAR-Event Camera Fusion : Self-Driving Perception
 
 **Course:** ECE 5424 Advanced Machine Learning | Virginia Tech, Spring 2026  
 **Team:** Enrique Maldonado · Christopher Quispesivana · Victor Velasquez · Michael Volkman  
-**Repository:** `snn-lidar-fusion`
+**Repository:** `snn-lidar-fusion-comparison`
 
 ---
 
