@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.env
+.venv
+env/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Data (too large for git — see data/README.md for download instructions)
+data/dsec/
+data/nuscenes/
+data/*.bag
+data/*.h5
+data/*.hdf5
+
+# Results / outputs (large binary files)
+results/*.pkl
+results/*.pt
+results/*.pth
+
+# Model checkpoints
+*.ckpt
+*.pt
+*.pth
+checkpoints/
+
+# Conda
+*.conda
+environment_lock.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# v2e output (large)
+v2e_output/
