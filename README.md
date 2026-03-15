@@ -115,29 +115,6 @@ Three axes, following the nuScenes benchmark standard:
 
 ---
 
-## Getting Started
-
-```bash
-# Clone the repository
-git clone https://github.com/vonfel/snn-lidar-fusion.git
-cd snn-lidar-fusion
-
-# Create and activate the conda environment
-conda env create -f environment.yml
-conda activate snn-fusion
-
-# Install v2e for event synthesis
-pip install v2e
-
-# Download DSEC dataset
-# See data/README.md for download instructions
-
-# Run the Time Surface demo notebook
-jupyter notebook notebooks/02_time_surface_viz.ipynb
-```
-
----
-
 ## Results
 
 *In progress — results will be populated as experiments complete.*
