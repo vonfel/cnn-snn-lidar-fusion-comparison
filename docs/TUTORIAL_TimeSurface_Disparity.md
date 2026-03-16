@@ -84,7 +84,7 @@ distance (43.7 mm). When both cameras observe the same scene, a nearby object
 appears at different horizontal positions in the left and right images. A distant
 object appears at nearly the same position in both.
 
-**Disparity** is the pixel distance between where the same point appears in the
+Disparity is the pixel distance between where the same point appears in the
 left vs. right image.
 
 ```
