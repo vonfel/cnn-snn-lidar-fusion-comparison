@@ -162,5 +162,3 @@ structure). Only regions where *both* motion and geometry are present contribute
 to the final detection.
 
 ---
-
-*ECE 5424 Advanced Machine Learning - Virginia Tech, Spring 2026*
