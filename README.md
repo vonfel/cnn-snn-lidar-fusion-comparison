@@ -1,7 +1,7 @@
 # SNN vs CNN for LiDAR-Event Camera Fusion
 
 **Course:** ECE 5424 Advanced Machine Learning | Virginia Tech, Spring 2026  
-**Team:** Enrique Maldonado · Christopher Quispesivana · Victor Velasquez · Michael Volkman  
+**Team:** Victor Velasquez Fonseca, Michael Volkman, Christopher Quispesivana, Enrique Maldonado
 **Repository:** `cnn-snn-lidar-fusion-comparison`
 
 ---
