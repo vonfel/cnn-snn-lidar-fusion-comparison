@@ -2,7 +2,6 @@
 
 **Course:** ECE 5424 Advanced Machine Learning | Virginia Tech, Spring 2026  
 **Team:** Victor Velasquez Fonseca, Michael Volkman, Christopher Quispesivana, Enrique Maldonado
-**Repository:** `cnn-snn-lidar-fusion-comparison`
 
 ---
 
