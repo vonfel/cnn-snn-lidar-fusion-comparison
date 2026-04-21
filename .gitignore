@@ -63,3 +63,4 @@ overlap_bounds_04a.npy
 
 # Local config (contains  pths)
 config.py
+docs/session_*_handoff.md
