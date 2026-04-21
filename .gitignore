@@ -52,5 +52,14 @@ Thumbs.db
 # v2e output (large)
 v2e_output/
 
+# LiDAR extracted sweeps (large binary — DO NOT commit)
+**/lidar_sweeps/
+data/lidar_sweeps/
+*.npy
+overlap_bounds_04a.npy
+
+# Projected depth maps (large binary — DO NOT commit)
+**/depth_maps/
+
 # Local config (contains  pths)
 config.py

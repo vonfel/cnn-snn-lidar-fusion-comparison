@@ -1,7 +1,8 @@
 # SNN vs CNN for LiDAR-Event Camera Fusion
 
 **Course:** ECE 5424 Advanced Machine Learning | Virginia Tech, Spring 2026  
-**Team:** Victor Velasquez Fonseca, Michael Volkman, Christopher Quispesivana, Enrique Maldonado
+**Team:** Victor Velasquez · Michael Volkman · Enrique Maldonado · Christopher Quispesivana  
+**Repository:** `cnn-snn-lidar-fusion-comparison`
 
 ---
 
@@ -9,9 +10,9 @@
 
 End-to-end comparison of Spiking Neural Networks (SNNs) and Convolutional Neural Networks (CNNs) for fusing event-camera and LiDAR data in autonomous driving perception.
 
-Current sensor fusion pipelines force asynchronous, event-driven data into synchronous frames, which causes a mismatch that inflates latency and wastes computation. This project aims to determine if SNNs, which natively handle asynchronous spike-based data, can outperform CNNs at the fusion stage.
+Current sensor fusion pipelines force asynchronous, event-driven data into synchronous frames, which causes a mismatch that inflates latency and wastes computation. This project asks whether SNNs, which natively handle asynchronous spike-based data, can outperform CNNs at the fusion stage for urban driving scene understanding.
 
-We build a two-branch fusion architecture with a Smart Gate, an attention mechanism that uses the SNN's event-driven output to selectively suppress static LiDAR features, reducing computation on regions with no detected motion. Both models are evaluated side-by-side under identical conditions on DSEC and nuScenes.
+We build a two-branch fusion architecture on the DSEC dataset. Branch A processes real DVS event streams through a Time Surface representation and a 3-layer LIF SNN. Branch B processes projected LiDAR depth maps through a 3-layer CNN. A Smart Gate fuses both branches by using the SNN attention map to selectively suppress static LiDAR features. Both branches are evaluated side-by-side under identical conditions on semantic segmentation.
 
 ---
 
@@ -19,83 +20,118 @@ We build a two-branch fusion architecture with a Smart Gate, an attention mechan
 
 | Metric | Target | Status |
 |--------|--------|--------|
-| Detection accuracy (mAP @ IoU 0.5) | Competitive with CNN baseline | In progress |
-| Detection accuracy (mAP @ IoU 0.7) | Within ±2% of CNN baseline | In progress |
-| Inference latency (GPU) | Lower than CNN at equivalent mAP | In progress |
-| Smart Gate sparsity ratio | >30% LiDAR feature suppression on driving scenes | In progress |
+| Segmentation accuracy (mIoU) | Competitive with CNN baseline | In progress |
+| Inference latency (GPU) | Lower than CNN at equivalent mIoU | In progress |
+| Smart Gate sparsity ratio | >30% LiDAR feature suppression | In progress |
 | SNN training convergence | Surrogate gradient loss < CNN baseline loss | In progress |
 
 ---
 
-## Engineering Decisions & Key Trade-offs
+## Engineering Decisions and Key Trade-offs
 
-### 1. v2e Over SENPI for Synthetic Event Generation
-Physical event cameras (DVS/DAVIS) are specialized hardware costing thousands of dollars. We use v2e (`sensorsINI/v2e`) to synthesize realistic event streams from standard driving videos. v2e was selected over SENPI due to its larger user base, active maintenance, published validation on real DVS hardware, and a well-documented tutorial notebook. SENPI is newer and less tested.
+### 1. DSEC Only (nuScenes Dropped)
+The original proposal called for fusing DSEC event data with nuScenes LiDAR. After analysis, DSEC already includes LiDAR data in rosbag format alongside the event camera, calibrated to the same vehicle coordinate frame. Using a single dataset eliminates the dataset merging problem entirely and gives us spatially and temporally consistent sensor data. nuScenes is noted as a natural extension for future work.
 
-### 2. Time Surface as the Bridge Representation
-Raw event streams are sparse and asynchronous, while neural networks expect dense, structured tensors. A Time Surface maps each pixel to the timestamp of its most recent event, producing a 2D image where recently-active pixels are bright and inactive pixels decay toward zero. This converts the event stream into a format CNNs and SNNs can both process, while preserving temporal dynamics.
+### 2. Real DVS Events (v2e Dropped)
+DSEC provides real Dynamic Vision Sensor recordings stored in HDF5 format. Synthetic event generation with v2e is not needed. v2e remains available in the repository for potential use with other video datasets in future work.
 
-### 3. Bird's Eye View (BEV) Projection for LiDAR
-Raw LiDAR point clouds are unstructured 3D data. Projecting downward into a Bird's Eye View grid converts the point cloud into a regular 2D tensor, which is fully compatible with standard CNN convolutions, while preserving the spatial geometry critical for 3D bounding box detection.
+### 3. Temporal Alignment as the Core Data Engineering Problem
+The event camera and LiDAR do not share a clock. DSEC stores event timestamps relative to recording start while the LiDAR bag uses absolute ROS time, creating an apparent offset of roughly 10 hours. A `t_offset` scalar stored in `events.h5` resolves this. Even after clock alignment, the two sensors never fire at exactly the same microsecond. A 55ms quality filter (half one LiDAR sweep period) rejects pairs where the scene has changed too much between readings. This produced 350 valid matched pairs from the 35-second overlap window.
 
-### 4. Smart Gate Fusion (Element-wise Attention)
-Rather than a standard concatenation or addition fusion, we use the SNN's Time Surface attention map as a multiplicative gate on the LiDAR CNN features. Where the event stream detects motion (bright Time Surface pixels), LiDAR features pass at full strength. Where the scene is static, LiDAR features are suppressed toward zero. This implements event-driven sparse computation at the feature-map level.
+### 4. Camera-Plane LiDAR Projection (Not BEV)
+Rather than a Bird's Eye View projection, we project LiDAR point clouds directly into the rectified left camera image plane. This puts the LiDAR depth map in the same coordinate frame as the event camera Time Surface, enabling pixel-level spatial alignment for the Smart Gate fusion. The Velodyne VLP-16 produces roughly 4,100 non-zero pixels per frame at 640x480 resolution.
 
-### 5. Controlled Baseline Design
-The CNN baseline is architecturally identical to the SNN branch: same number of layers, same channel dimensions, same training data and optimizer. The only variable is LIF spiking neurons vs. ReLU neurons. Any measured performance gap is therefore attributable to the SNN's temporal integration behavior.
+### 5. Scaled Intrinsics for Direct Projection
+DSEC calibrates the LiDAR to the frame camera at 1440x1080 native resolution. Projecting at native resolution and downsampling to 640x480 loses 78% of LiDAR points through nearest-neighbour collapse. Scaling the intrinsic matrix directly to 640x480 and projecting once recovers roughly 4x more depth returns per frame.
+
+### 6. Time Surface as the Event Representation
+Raw event streams are asynchronous lists of (x, y, t, polarity) tuples. A Time Surface converts this into a 2D grid where each pixel stores the timestamp of its most recent event, normalized within a 50ms window. Recently active pixels are bright, inactive pixels decay toward zero. This preserves temporal dynamics while producing a structured tensor both the SNN and CNN can process.
+
+### 7. Smart Gate Fusion
+Rather than concatenation or addition, the SNN attention map gates the CNN LiDAR features elementwise. Where the event stream detects motion, LiDAR features pass at full strength. Where the scene is static, LiDAR features are suppressed toward zero. This implements event-driven sparse computation at the feature map level and directly quantifies the computational savings of event-driven attention.
+
+### 8. Controlled Baseline Design
+The CNN baseline is architecturally identical to the SNN branch: same number of layers, same channel dimensions, same training data and optimizer. The only variable is LIF spiking neurons versus ReLU neurons. Any measured performance difference is attributable to the temporal integration behavior of the SNN, not architectural differences.
 
 ---
 
 ## Architecture
 
 ```
-                    ┌─────────────────────────────────────────┐
-                    │              Branch A — Events           │
-                    │                                         │
-  Driving Video ──► │  v2e Simulator ──► Time Surface ──► SNN │──► Attention Map
-                    │                    (2D decay map)  (LIF) │         │
-                    └─────────────────────────────────────────┘         │
+                    +-----------------------------------------+
+                    |           Branch A -- Events            |
+                    |                                         |
+  events.h5 ──────► |  Time Surface ──────────────────► SNN   |──► Attention Map
+                    |  (2-channel, 480x640)          (3 LIF)  |         |
+                    +-----------------------------------------+         |
                                                                    Smart Gate
-                                                                  (element-wise ×)
-                    ┌─────────────────────────────────────────┐         │
-                    │              Branch B — LiDAR            │         │
-                    │                                         │         │
-  LiDAR Scan ─────► │  Point Cloud ──► BEV Projection ──► CNN │──► Feature Map
-                    │  (300K pts)      (2D top-down grid) (ReLU)│         │
-                    └─────────────────────────────────────────┘         │
-                                                                         ▼
+                                                                  (elementwise x)
+                    +-----------------------------------------+         |
+                    |           Branch B -- LiDAR             |         |
+                    |                                         |         |
+  lidar_imu.bag ──► |  Depth Map ─────────────────────► CNN   |──► Feature Map
+                    |  (projected, 480x640)          (3 Conv)  |         |
+                    +-----------------------------------------+         |
+                                                                         v
                                                                   Fused Feature Map
-                                                                         │
-                                                                         ▼
-                                                               Detection Head (FC layers)
-                                                                         │
-                                                                         ▼
-                                                          3D Bounding Boxes (x, y, z, l, w, h, conf)
+                                                                         |
+                                                                         v
+                                                               Segmentation Head
+                                                                         |
+                                                                         v
+                                                          Semantic Labels (11 classes)
 ```
 
 | Block | Description |
 |-------|-------------|
-| v2e Simulator | Converts standard video frames to realistic DVS event streams `(x, y, t, polarity)` |
-| Time Surface | Maps each pixel to timestamp of most recent event; decays exponentially with time constant τ |
-| SNN (Branch A) | 3-layer Leaky Integrate-and-Fire network; trained with surrogate gradients via snnTorch |
-| BEV Projection | Projects LiDAR point cloud to 2D top-down grid with height and intensity channels |
-| CNN (Branch A Baseline / Branch B) | 3-layer convolutional network; ReLU activations; identical structure to SNN branch |
-| Smart Gate | Element-wise multiplication of SNN attention map × CNN LiDAR feature map |
-| Detection Head | Fully-connected layers outputting 3D bounding box predictions with confidence scores |
+| Time Surface | 2-channel (ON/OFF polarity) decay map built from a 50ms event window; shape (2, 480, 640) |
+| SNN Branch A | 3-layer Leaky Integrate-and-Fire network trained with surrogate gradients via snnTorch; output (64, 120, 160) |
+| Depth Map | LiDAR point cloud projected into camera plane using calibrated extrinsics; shape (1, 480, 640), units metres |
+| CNN Branch B | 3-layer convolutional network with ReLU activations; identical structure to SNN branch; output (64, 120, 160) |
+| Smart Gate | Elementwise multiplication of SNN attention map x CNN depth feature map |
+| Segmentation Head | Upsamples fused features to (11, 480, 640); trained with CrossEntropyLoss against DSEC semantic labels |
+
+---
+
+## Dataset
+
+**DSEC** (Driving Stereo Event Camera dataset) -- single dataset, no merging required.
+
+| Property | Value |
+|----------|-------|
+| Sequence used | `zurich_city_04_a` (primary), `zurich_city_00_a` (backup) |
+| Event camera | 640x480 DVS, real hardware recordings |
+| LiDAR | Velodyne VLP-16, 16 beams, ~25k points/sweep |
+| Semantic labels | 11 classes (road, vehicle, pedestrian, building, vegetation, etc.) |
+| Training samples | 350 matched triplets (event window + LiDAR sweep + segmentation label) |
+| Train / val split | 280 / 70 (80/20) |
+| Temporal alignment | 55ms filter; mean gap 25.19ms; max gap 50.33ms |
 
 ---
 
 ## Evaluation Protocol
 
-Three axes, following the nuScenes benchmark standard:
-
 | Axis | Metric | Protocol |
 |------|--------|----------|
-| **Accuracy** | mAP @ IoU 0.5 and IoU 0.7 | nuScenes benchmark protocol for cross-paper comparability |
-| **Speed** | End-to-end inference latency (ms) | CPU and GPU; averaged over 100 runs to account for variance |
-| **Efficiency** | Smart Gate sparsity ratio (%) | % of LiDAR features suppressed per scene; reported across scene types (highway, intersection, parking) |
+| Accuracy | mIoU (mean Intersection over Union) | Computed per class and averaged across all 11 classes |
+| Speed | End-to-end inference latency (ms) | GPU; averaged over 100 runs |
+| Efficiency | Smart Gate sparsity ratio (%) | Fraction of LiDAR features suppressed per scene |
 
-**Decision criterion:** SNN is considered superior if it matches CNN accuracy (within ±2% mAP) at lower latency, or achieves higher mAP at equivalent speed.
+**Decision criterion:** SNN is considered superior if it matches CNN mIoU (within 2%) at lower latency, or achieves higher mIoU at equivalent speed.
+
+---
+
+## Notebook Pipeline
+
+| Notebook | Status | Content |
+|----------|--------|---------|
+| `01_time_surface_dsec.ipynb` | Done | DVS events to Time Surface generation and visualization |
+| `02_disparity_eda.ipynb` | Done | Disparity map exploratory data analysis |
+| `03_lidar_extraction_alignment.ipynb` | Done | Rosbag extraction and temporal matching (350 pairs) |
+| `04_lidar_projection.ipynb` | Done | LiDAR to camera projection and depth map generation |
+| `05_snn_branch.ipynb` | In progress | Time surface loading, LIF SNN encoder, feature map output |
+| `06_cnn_branch.ipynb` | In progress | CNN depth encoder, same output shape as SNN branch |
+| `07_fusion_training.ipynb` | Pending | Smart Gate fusion, training loop, mIoU and latency evaluation |
 
 ---
 
@@ -103,39 +139,50 @@ Three axes, following the nuScenes benchmark standard:
 
 | Category | Tool | Notes |
 |----------|------|-------|
-| **Language** | Python 3.10+ | |
-| **Deep Learning** | PyTorch 2.x | SNN and CNN training |
-| **SNN Framework** | snnTorch | Surrogate gradient training for LIF neurons |
-| **Event Synthesis** | v2e (`sensorsINI/v2e`) | DVS event stream generation from video |
-| **Datasets** | DSEC, nuScenes | Primary evaluation benchmarks |
-| **Dev Environment** | Jupyter | `requirements.txt` provided |
-| **Version Control** | Git + GitHub | This repository |
-| **Compute** | Personal GPUs / TBD | Training and inference benchmarking |
+| Language | Python 3.11 | |
+| Deep Learning | PyTorch 2.5.1 + CUDA 12.1 | GPU-accelerated training |
+| SNN Framework | snnTorch | Surrogate gradient training for LIF neurons |
+| Data | rosbags | ROS1 bag reading without ROS installation |
+| Datasets | DSEC | Single dataset covering event camera, LiDAR, and semantic labels |
+| Dev Environment | Jupyter + conda (neural_arch env) | |
+| Version Control | Git + GitHub | |
 
 ---
 
 ## Results
 
-*In progress — results will be populated as experiments complete.*
+*In progress -- results will be updated as training completes.*
 
-| Model | mAP @ IoU 0.5 | mAP @ IoU 0.7 | GPU Latency (ms) | Sparsity Ratio |
-|-------|--------------|--------------|-----------------|----------------|
-| CNN Baseline | — | — | — | N/A |
-| SNN + Smart Gate | — | — | — | — |
+| Model | mIoU | GPU Latency (ms) | Sparsity Ratio |
+|-------|------|-----------------|----------------|
+| CNN Baseline | -- | -- | N/A |
+| SNN + Smart Gate | -- | -- | -- |
+
+---
+
+## Known Implementation Notes
+
+| Issue | Fix |
+|-------|-----|
+| `events.h5` uses BLOSC compression | `import hdf5plugin` before `import h5py` |
+| Event timestamps are relative, LiDAR timestamps are absolute | Add `t_offset` from root of `events.h5` |
+| `cam_to_lidar.yaml` stores a 4x4 matrix, not separate R and t | Invert the full matrix: `R = R_lc.T`, `t = -R_lc.T @ t_lc` |
+| Projecting at 1440x1080 then resizing loses 78% of LiDAR points | Scale intrinsics to 640x480, project directly |
+| Semantic label PNGs are 640x440, depth maps are 640x480 | `cv2.resize(..., INTER_NEAREST)` in dataset class |
+| Labels are 2 subdirectories deep | Path: `*_semantic/zurich_city_04_a/11classes/` |
 
 ---
 
 ## References
 
-1. Y. Hu et al., "v2e: From Video Frames to Realistic DVS Events," *CVPR Workshop*, 2021.
-2. J. Greene et al., "SENPI: A PyTorch-Enabled Tool for Synthetic Event Camera Data," *SPIE*, 2025.
-3. A. Sironi et al., "HATS: Histograms of Averaged Time Surfaces for Event Cameras," *CVPR*, 2018.
-4. T. Ali et al., "An FPGA-based Neuromorphic Vision System Accelerator," *SPIE*, 2024.
-5. M. Isik et al., "Accelerating Sensor Fusion in Neuromorphic Computing: A Case Study on Loihi-2," *arXiv:2408.16096*, 2024.
-6. J. Eshraghian et al., "Training Spiking Neural Networks Using Lessons From Deep Learning," *Proc. IEEE*, vol. 111, 2023.
-
-*Generative AI was used to assist creating some sections of this README*
+1. Y. Hu et al., "v2e: From Video Frames to Realistic DVS Events," CVPR Workshop, 2021.
+2. J. Greene et al., "SENPI: A PyTorch-Enabled Tool for Synthetic Event Camera Data," SPIE, 2025.
+3. A. Sironi et al., "HATS: Histograms of Averaged Time Surfaces for Event Cameras," CVPR, 2018.
+4. T. Ali et al., "An FPGA-based Neuromorphic Vision System Accelerator," SPIE, 2024.
+5. M. Isik et al., "Accelerating Sensor Fusion in Neuromorphic Computing: A Case Study on Loihi-2," arXiv:2408.16096, 2024.
+6. J. Eshraghian et al., "Training Spiking Neural Networks Using Lessons From Deep Learning," Proc. IEEE, vol. 111, 2023.
+7. M. Gehrig et al., "DSEC: A Stereo Event Camera Dataset for Driving Scenarios," IEEE RA-L, 2021.
 
 ---
 
-*ECE 5424 Advanced Machine Learning — Virginia Tech, Spring 2026*
+*ECE 5424 Advanced Machine Learning -- Virginia Tech, Spring 2026*
