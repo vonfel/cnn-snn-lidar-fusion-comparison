@@ -1,0 +1,5 @@
+Model architectures — ECE 5424 Capstone
+=============================================
+Model A (depth-only CNN)    : 61,963 parameters
+Model B (early fusion CNN)  : 62,251 parameters
+Model C (SNN + Smart Gate)  : 85,403 parameters
