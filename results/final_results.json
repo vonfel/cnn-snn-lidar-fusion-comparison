@@ -1,0 +1,31 @@
+{
+  "model_A": {
+    "name": "Depth-only CNN",
+    "params": 61963,
+    "inputs": "depth only (1ch)",
+    "best_val_miou": 0.0799
+  },
+  "model_B": {
+    "name": "Early Fusion CNN",
+    "params": 62251,
+    "inputs": "depth + time surface (3ch concat)",
+    "best_val_miou": 0.144
+  },
+  "model_C": {
+    "name": "SNN + Smart Gate",
+    "params": 85403,
+    "inputs": "depth + time surface (separate branches)",
+    "best_val_miou": 0.1219,
+    "smart_gate_sparsity": 0.0
+  },
+  "training": {
+    "epochs": 30,
+    "lr": 0.001,
+    "batch_size": 4,
+    "train_samples": 280,
+    "val_samples": 70,
+    "seed": 42,
+    "num_classes": 11,
+    "sequence": "zurich_city_04_a"
+  }
+}

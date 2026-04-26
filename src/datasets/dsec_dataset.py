@@ -99,7 +99,8 @@ class DSECFusionDataset(Dataset):
     """
 
     def __init__(self, pairs_json, depth_map_dir, semantic_dir,
-                 t_abs, x_all, y_all, p_all):
+                 t_abs, x_all, y_all, p_all,
+                 normalize_depth=False):
         with open(pairs_json) as f:
             self.pairs = json.load(f)
 
@@ -120,6 +121,15 @@ class DSECFusionDataset(Dataset):
         self.y_all = y_all
         self.p_all = p_all
 
+        # Depth normalization: divides raw metres by DEPTH_MAX so depth is in [0,1].
+        # Time surfaces are already [0,1]; without this, the two input modalities
+        # have vastly different scales, which elongates the loss landscape and
+        # slows/destabilises optimisation (Lecture 04 — Optimization & GD).
+        # DEPTH_MAX = 104.0 m is the maximum observed range in zurich_city_04_a.
+        # Zero pixels (no LiDAR return) stay at zero after division.
+        self.normalize_depth = normalize_depth
+        self.DEPTH_MAX = 104.0
+
     def __len__(self):
         return len(self.pairs)
 
@@ -138,6 +148,12 @@ class DSECFusionDataset(Dataset):
         # Shape on disk: (H, W) float32, units = metres, 0 = no return
         depth_np = np.load(self.depth_map_dir / f"{frame_idx:04d}.npy")
         depth = torch.from_numpy(depth_np).unsqueeze(0)  # (1, 480, 640)
+
+        # Depth normalization: scale metres → [0, 1] so both input modalities
+        # share the same feature scale. Zero pixels (no LiDAR return) stay at
+        # zero after division. See Lecture 04 — Optimization & GD, cell 14.
+        if self.normalize_depth:
+            depth = depth / self.DEPTH_MAX
 
         # --- Semantic label (ground truth) ---
         # Each pixel value is an integer class ID; read as grayscale
