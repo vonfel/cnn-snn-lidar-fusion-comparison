@@ -101,7 +101,7 @@ Weighted CrossEntropyLoss is incompatible with the SNN branch. The SNN unrolls a
 |-------|-------|--------|--------|---------|
 | A | `DepthOnlyCNN` | depth (1ch) | 61,963 | LiDAR-alone lower bound |
 | B | `EarlyFusionCNN` | depth + time surface concat (3ch) | 62,251 | Naive multimodal fusion ceiling |
-| C | `SmartGateModel` | depth + time surface separate branches | 85,403 | SNN attention mechanism |
+| C | `SmartGateModel` | depth + time surface separate branches | 89,755 | SNN attention mechanism |
 
 Models A and B share the same `CNNEncoder` backbone. Model C adds an `SNNEncoder` branch whose mean firing rate serves as the spatial attention gate on CNN depth features.
 
@@ -130,21 +130,21 @@ All models trained on combined dataset (749 samples), validated on `zurich_city_
 
 | Model | Baseline | Round 1 | Round 2 | Round 3 |
 |-------|----------|---------|---------|---------|
-| A: Depth-only CNN | 0.0799 | 0.0871 | 0.0831 | in progress |
-| B: Early Fusion CNN | 0.1457 | 0.1470 | 0.1385 | in progress |
-| C: SNN + Smart Gate | 0.1284 | 0.1098 | 0.1035 | in progress |
+| A: Depth-only CNN | 0.0799 | 0.0871 | 0.0782 | 0.0840 |
+| B: Early Fusion CNN | 0.1457 | 0.1470 | 0.1378 | 0.1415 |
+| C: SNN + Smart Gate | 0.1284 | 0.1098 | 0.1116 | 0.1376 |
 
 Round configurations:
 - **Baseline:** unweighted CE, raw depth (0-104m), 30+20 epochs
 - **Round 1:** depth normalization, weighted CE, gradient clipping, 30 epochs
 - **Round 2:** added zurich_city_00_a, EDA-informed weights, label smoothing for C, 30 epochs
-- **Round 3:** AdamW + ReduceLROnPlateau, frequency-threshold weights (1% cutoff), 40 epochs -- in progress
+- **Round 3:** AdamW + ReduceLROnPlateau, frequency-threshold weights (1% cutoff), 40 epochs
 
 ---
 
 ## Key Scientific Findings
 
-**C does not beat B across any round.** The SNN Smart Gate architecture does not outperform early concatenation fusion at this dataset scale (280-749 samples). This is the central finding and the honest scientific conclusion.
+**It is inconclusive whether Model C can outperform Model B.** The SNN Smart Gate architecture does not clearly outperform early concatenation fusion at this dataset scale (280-749 samples). This is the central finding and the honest scientific conclusion. We believe that using more data to train the models with would potentially allow Model C to show improved performance compared to Models A and B; however, with our final comprehensive notebook already taking nearly an hour and a half per run in its current state with GPU usage, we deemed it a significant challenge to incorporate additional data from the internet databases we utilized in this project in a ML system that could provide us timely results.
 
 **Weighted CE is incompatible with SNN gradient unrolling.** Four time steps create a deeper backward pass that amplifies gradients under class-weighted loss, causing val_loss spikes of 5-9x regardless of weight configuration. This is a documented challenge in SNN training and motivates neuromorphic hardware deployment where backpropagation is eliminated entirely.
 
@@ -167,7 +167,7 @@ Round configurations:
 | `05_models_and_data.ipynb` | Done | All three model architectures, real time surface integration |
 | `06_training_and_eval.ipynb` | Done | Baseline training and evaluation |
 | `06_training_and_eval_r1.ipynb` | Done | Round 1: depth normalization, weighted CE, per-class IoU |
-| `07_r2_r3_all_combined.ipynb` | In progress | Round 2 and Round 3: combined dataset, AdamW, LR scheduler |
+| `07_r2_r3_all_combined.ipynb` | Done | Round 2 and Round 3: combined dataset, AdamW, LR scheduler |
 
 ---
 
